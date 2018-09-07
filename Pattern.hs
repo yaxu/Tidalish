@@ -5,6 +5,8 @@ module Pattern where
 import Data.Ratio
 import Control.Applicative
 
+import Utils
+
 type Time = Rational
 type Span = (Time, Time)
 type Part = (Span, Span) -- part, whole (first should fit inside the second)
@@ -113,26 +115,3 @@ fast r p | r == 0 = silence
 
 slow :: Time -> Pattern a -> Pattern a
 slow r p = fast (1/r) p
-
--- Utils
-mapBoth :: (a -> a) -> (a,a) -> (a,a)
-mapBoth f (a,b) = (f a, f b)
-
-mapPartTimes :: (a -> a) -> ((a,a),(a,a)) -> ((a,a),(a,a))
-mapPartTimes f part = mapBoth (mapBoth f) part
-
-mapFst :: (a -> b) -> (a, c) -> (b, c)
-mapFst f (x,y) = (f x,y)
-
-mapSnd :: (a -> b) -> (c, a) -> (c, b)
-mapSnd f (x,y) = (x,f y)
-
--- fast n p = 
-
-{-
-intersectSpan :: Span -> Span -> Maybe Span
-intersectSpan (s, e) (s',e') | s'' < e'' = Just (s'', e'')
-                             | otherwise = Nothing
-  where s'' = max s s'
-        e'' = min e e'
--}
