@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Pattern where
+module Sound.Tidal.Pattern where
 
 import Data.Ratio
 import Control.Applicative
@@ -10,22 +10,60 @@ import Utils
 type Time = Rational
 type Span = (Time, Time)
 type Part = (Span, Span) -- part, whole (first should fit inside the second)
-type Query a = (Span -> [(Part, a)])
+type Event a = (Part, a)
+type Query a = (Span -> [Event a])
 data Pattern a = Pattern {query :: Query a}
+
+eventWhole :: Event a -> Span
+eventWhole = snd . fst
+
+eventPart :: Event a -> Span
+eventPart = fst . fst
+
+delta (a,b) = b-a
 
 instance Functor Pattern where
   fmap f = Pattern . (fmap (fmap (fmap f))) . query
 
+instance Applicative Pattern where
+  pure = atom
+  pf <*> px = Pattern $ \a -> (concatMap applyX $ query pf a) ++ (concatMap applyToF $ query px a)
+    where
+      applyX event@((_,(ws,_)),f) =
+        map (\(_,x) -> (fst event, f x)) $ filter (eventLE event) $ query px (ws,ws)
+      applyToF event@((_,(ws,_)),x) =
+        map (\(_,f) -> (fst event, f x)) $ filter (eventL event) $ query pf (ws,ws)
+
+(<*) :: Pattern (a -> b) -> Pattern a -> Pattern b
+pf <* px = Pattern $ \a -> concatMap applyX $ query pf a
+  where 
+        applyX event@((_,(ws,_)),f) =
+          map (\(_,x) -> (fst event, f x)) $ query px (ws,ws)
+
+(*>) :: Pattern (a -> b) -> Pattern a -> Pattern b
+pf *> px = Pattern $ \a -> concatMap applyToF $ query px a
+  where 
+        applyToF event@((_,(ws,_)),x) =
+          map (\(_,f) -> (fst event, f x)) $ query pf (ws,ws)
+
+eventL :: Event a -> Event b -> Bool
+eventL e e' = (delta $ eventWhole e) < (delta $ eventWhole e')
+
+eventLE :: Event a -> Event b -> Bool
+eventLE e e' = (delta $ eventWhole e) <= (delta $ eventWhole e')
+
+
+-- | Repeat the given value once per cycle, forever
 atom v = Pattern $ \(s,e) -> map (\(s',e') -> (constrain (s,e) (s',e'),v)) $ cycleSpansInSpan (s,e)
     where constrain (s,e) (s',e') = ((max s s', min e e'), (s',e'))
 
--- | Splits the given @Arc@ into a list of @Arc@s, at cycle boundaries.
+-- | Splits the given @Span@ into a list of @Span@s, at cycle boundaries.
 spanCycles :: Span -> [Span]
 spanCycles (s,e) | s >= e = []
                  | sam s == sam e = [(s,e)]
                  | otherwise = (s, nextSam s) : (spanCycles (nextSam s, e))
 
--- queries that span arcs. For example `arc p (0.5, 1.5)` would be
+-- | Splits queries that span arcs. For example `query p (0.5, 1.5)` would be
 -- turned into two queries, `(0.5,1)` and `(1,1.5)`, and the results
 -- combined. Being able to assume queries don't span cycles often
 -- makes transformations easier to specify.
@@ -51,21 +89,6 @@ rotL t p = withResultTime (subtract t) $ withQueryTime (+ t) p
 
 rotR :: Time -> Pattern a -> Pattern a
 rotR t = rotL (0-t)
-
-(<#) :: Pattern (a -> b) -> Pattern a -> Pattern b
-pf <# px = Pattern $ \a -> concatMap applyX $ query pf a
-  where 
-        applyX event@((_,(ws,_)),f) =
-          map (\(_,x) -> (fst event, f x)) $ query px (ws,ws)
-
-(#>) :: Pattern (a -> b) -> Pattern a -> Pattern b
-pf #> px = Pattern $ \a -> concatMap applyToF $ query px a
-  where 
-        applyToF event@((_,(ws,_)),x) =
-          map (\(_,f) -> (fst event, f x)) $ query pf (ws,ws)
-
-whole :: Span -> Part
-whole s = (s,s)
 
 toTime :: Integral a => a -> Rational
 toTime = toRational

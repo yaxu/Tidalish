@@ -1,4 +1,4 @@
-module Utils where
+module Sound.Tidal.Utils where
 
 mapBoth :: (a -> a) -> (a,a) -> (a,a)
 mapBoth f (a,b) = (f a, f b)
