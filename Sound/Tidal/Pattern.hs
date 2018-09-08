@@ -5,7 +5,7 @@ module Sound.Tidal.Pattern where
 import Data.Ratio
 import Control.Applicative
 
-import Utils
+import Sound.Tidal.Utils
 
 type Time = Rational
 type Span = (Time, Time)
