@@ -92,7 +92,7 @@ instance Monad Pattern where
 -- 4/ concatenate all the inner events together
 
 unwrap :: Pattern (Pattern a) -> Pattern a
-unwrap p = Pattern $ \a -> concatMap (\((_, whole), p') -> mapMaybe (munge whole) $ query p' span) (query p span)
+unwrap p = Pattern $ \span -> concatMap (\((_, whole), p') -> mapMaybe (munge whole) $ query p' span) (query p span)
   where munge outerWhole ((innerPart,innerWhole),v) =
           do part' <- subSpan outerWhole innerPart
              return ((part', innerWhole),v)
@@ -200,7 +200,7 @@ append a b = cat [a,b]
 slowAppend = append
 slowappend = append
 
-fastAppend = fast 2 $ append
+fastAppend a b = fast 2 $ append a b
 fastappend = fastAppend
 
 -- | The same as @cat@, but speeds up the result by the number of
