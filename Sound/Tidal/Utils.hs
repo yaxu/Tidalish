@@ -11,3 +11,5 @@ mapFst f (x,y) = (f x,y)
 
 mapSnd :: (a -> b) -> (c, a) -> (c, b)
 mapSnd f (x,y) = (x,f y)
+
+delta (a,b) = b-a
