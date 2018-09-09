@@ -90,6 +90,10 @@ instance Monad Pattern where
 --  a/ Get the new part as the intersection of the outer whole and inner part
 --  b/ Keep the new whole as the inner whole
 -- 4/ concatenate all the inner events together
+--
+-- This is actually @join@.. Probably better to define bind (@>>=@) rather than join?
+-- (>>=) :: Pattern a -> (a -> Pattern b) -> Pattern b
+-- join x = x >>= id
 
 unwrap :: Pattern (Pattern a) -> Pattern a
 unwrap p = Pattern $ \span -> concatMap (\((_, whole), p') -> mapMaybe (munge whole) $ query p' span) (query p span)
